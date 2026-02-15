@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ジャングル探検 性格診断</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans JP',sans-serif;background:#071407;color:#e8f5e9;min-height:100vh;overflow-x:hidden;}
+
+/* BG */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;transition:background 1.5s ease;}
+.particle{position:absolute;border-radius:50%;animation:floatUp linear infinite;}
+@keyframes floatUp{0%{transform:translateY(100vh);opacity:0}10%{opacity:1}90%{opacity:.6}100%{transform:translateY(-5vh);opacity:0}}
+
+/* Progress */
+#prog{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#2ecc71,#1abc9c);box-shadow:0 0 10px #2ecc71;transition:width .8s ease;z-index:20;}
+
+/* App */
+#app{position:relative;z-index:5;min-height:100vh;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;}
+.screen{display:none;width:100%;max-width:600px;max-height:calc(100vh - 24px);overflow-y:auto;}
+.screen.active{display:block;}
+.screen::-webkit-scrollbar{width:4px;}
+.screen::-webkit-scrollbar-track{background:transparent;}
+.screen::-webkit-scrollbar-thumb{background:rgba(46,204,113,.3);border-radius:2px;}
+.card{background:rgba(4,15,4,.88);border:1px solid rgba(46,204,113,.28);border-radius:20px;padding:clamp(16px,2.5vh,32px) clamp(16px,3vw,28px);backdrop-filter:blur(14px);box-shadow:0 8px 48px rgba(0,0,0,.65),inset 0 0 60px rgba(46,204,113,.03);animation:cIn .55s cubic-bezier(.34,1.56,.64,1);}
+@keyframes cIn{from{opacity:0;transform:translateY(28px) scale(.95)}to{opacity:1;transform:none}}
+
+/* START */
+.s-icon{font-size:68px;text-align:center;margin-bottom:14px;animation:bob 2.2s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.s-title{text-align:center;font-size:1.9rem;font-weight:900;color:#2ecc71;text-shadow:0 0 20px rgba(46,204,113,.5);margin-bottom:8px;line-height:1.3;}
+.s-sub{text-align:center;color:#81c784;font-size:.88rem;line-height:1.9;margin-bottom:22px;}
+.tags{text-align:center;margin-bottom:28px;}
+.tag{display:inline-block;background:rgba(46,204,113,.13);border:1px solid rgba(46,204,113,.35);color:#2ecc71;font-size:.72rem;padding:4px 11px;border-radius:20px;margin:2px;}
+
+/* TRANSITION */
+#trans{position:fixed;inset:0;z-index:100;background:#071407;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;opacity:0;pointer-events:none;transition:opacity .35s ease;}
+#trans.show{opacity:1;pointer-events:all;}
+#trans svg{width:min(90vw,520px);height:auto;}
+.trans-label{color:#2ecc71;font-size:.9rem;letter-spacing:3px;margin-top:18px;opacity:0;transition:opacity .5s ease .3s;}
+#trans.show .trans-label{opacity:1;}
+.dots span{animation:db 1s infinite;} .dots span:nth-child(2){animation-delay:.2s;} .dots span:nth-child(3){animation-delay:.4s;}
+@keyframes db{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* QUESTION */
+.q-depth{font-size:.72rem;color:#4caf50;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.q-row{display:flex;align-items:baseline;gap:8px;margin-bottom:16px;}
+.q-n{font-size:2rem;font-weight:900;color:#2ecc71;}
+.q-tot{font-size:.85rem;color:#4caf50;}
+.q-scene{background:rgba(46,204,113,.07);border-left:3px solid #2ecc71;padding:11px 15px;border-radius:8px;font-size:.83rem;color:#a5d6a7;margin-bottom:18px;line-height:1.75;font-style:italic;}
+.q-text{font-size:1.1rem;font-weight:700;line-height:1.75;margin-bottom:22px;color:#e8f5e9;}
+.opts{display:flex;flex-direction:column;gap:11px;}
+.opt{background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.22);color:#c8e6c9;font-size:.92rem;padding:15px 18px;border-radius:11px;cursor:pointer;text-align:left;transition:all .22s ease;font-family:inherit;line-height:1.5;}
+.opt:hover{background:rgba(46,204,113,.17);border-color:#2ecc71;color:#fff;transform:translateX(5px);box-shadow:0 4px 18px rgba(46,204,113,.18);}
+.opt.sel{background:rgba(46,204,113,.28);border-color:#2ecc71;color:#fff;transform:translateX(5px);}
+
+/* RESULT */
+.r-animal{font-size:76px;text-align:center;margin-bottom:10px;animation:rIn .75s cubic-bezier(.34,1.56,.64,1);}
+@keyframes rIn{from{transform:scale(0) rotate(-15deg);opacity:0}to{transform:none;opacity:1}}
+.r-type{text-align:center;font-size:.85rem;color:#4caf50;letter-spacing:3px;margin-bottom:4px;}
+.r-name{text-align:center;font-size:1.7rem;font-weight:900;color:#2ecc71;text-shadow:0 0 18px rgba(46,204,113,.45);margin-bottom:18px;}
+.r-desc{background:rgba(46,204,113,.06);border-left:3px solid #2ecc71;padding:15px 18px;border-radius:8px;font-size:.9rem;line-height:1.85;color:#c8e6c9;margin-bottom:18px;}
+.r-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px;}
+.r-cell{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.18);border-radius:10px;padding:11px;text-align:center;}
+.r-clabel{font-size:.68rem;color:#4caf50;letter-spacing:1px;margin-bottom:3px;}
+.r-cval{font-size:.87rem;font-weight:700;color:#a5d6a7;}
+.axes{margin-bottom:22px;}
+.ax-row{margin-bottom:10px;}
+.ax-lbs{display:flex;justify-content:space-between;font-size:.75rem;color:#4caf50;margin-bottom:3px;}
+.ax-track{height:7px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;}
+.ax-fill{height:100%;background:linear-gradient(90deg,#2ecc71,#1abc9c);border-radius:4px;transition:width 1.1s ease .4s;width:0%;}
+
+/* BUTTONS */
+.btn{width:100%;padding:15px;background:linear-gradient(135deg,#2ecc71,#27ae60);border:none;border-radius:11px;color:#fff;font-size:.97rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .22s;box-shadow:0 4px 18px rgba(46,204,113,.28);letter-spacing:1px;margin-top:4px;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(46,204,113,.38);}
+.btn2{width:100%;padding:13px;background:transparent;border:1px solid rgba(46,204,113,.38);border-radius:11px;color:#4caf50;font-size:.92rem;cursor:pointer;font-family:inherit;margin-top:9px;transition:all .22s;letter-spacing:1px;}
+.btn2:hover{background:rgba(46,204,113,.1);color:#2ecc71;}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="prog" style="width:0%"></div>
+
+<!-- TRANSITION OVERLAY -->
+<div id="trans">
+  <svg id="transSvg" viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="trans-label" id="transLabel">ジャングルの奥へ進んでいます</div>
+  <div class="dots" style="margin-top:8px;color:#2ecc71;font-size:.85rem;letter-spacing:4px;">
+    <span>●</span><span>●</span><span>●</span>
+  </div>
+</div>
+
+<div id="app">
+  <!-- PASSWORD -->
+  <div class="screen active" id="screen-pw">
+    <div class="card">
+      <div class="s-icon">🔐</div>
+      <div class="s-title" style="font-size:1.5rem;">合言葉を入力</div>
+      <div class="s-sub">このジャングルへの入場には<br>合言葉が必要です。</div>
+      <input id="pwInput" type="password" placeholder="合言葉を入力..."
+        style="width:100%;padding:14px 16px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.3);border-radius:11px;color:#e8f5e9;font-size:1rem;font-family:inherit;margin-bottom:10px;outline:none;letter-spacing:2px;"
+        onkeydown="if(event.key==='Enter')checkPw()"/>
+      <div id="pwErr" style="color:#e74c3c;font-size:.82rem;text-align:center;min-height:20px;margin-bottom:10px;"></div>
+      <button class="btn" onclick="checkPw()">🗝️ 入場する</button>
+    </div>
+  </div>
+
+  <!-- START -->
+  <div class="screen" id="screen-start">
+    <div class="card">
+      <div class="s-icon">🗺️</div>
+      <div class="s-title">ジャングル探検<br>性格診断</div>
+      <div class="s-sub">自分という未知のジャングルを探検しよう。<br>12の問いに答えながら、あなたの本質へ迫る。</div>
+      <div class="tags">
+        <span class="tag">🌿 3軸診断</span>
+        <span class="tag">🦎 4タイプ</span>
+        <span class="tag">🧭 オリジナル軸</span>
+      </div>
+      <button class="btn" onclick="startQuiz()">🧭 探検を始める</button>
+    </div>
+  </div>
+
+  <!-- QUESTION -->
+  <div class="screen" id="screen-question">
+    <div class="card">
+      <div class="q-depth" id="qDepth">DEPTH 1 — 入口付近</div>
+      <div class="q-row">
+        <div class="q-n" id="qNum">01</div>
+        <div class="q-tot" id="qTot">/ 12</div>
+      </div>
+      <div class="q-scene" id="qScene"></div>
+      <div class="q-text" id="qText"></div>
+      <div class="opts" id="opts"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="card">
+      <div class="r-animal" id="rAnimal"></div>
+      <div class="r-type" id="rType"></div>
+      <div class="r-name" id="rName"></div>
+      <div class="tags" id="rTags"></div>
+      <div class="axes" id="axes"></div>
+      <div class="r-desc" id="rDesc"></div>
+      <div class="r-grid" id="rGrid"></div>
+      <button class="btn" onclick="doShare()">🌿 結果をシェアする</button>
+      <button class="btn2" onclick="restartQuiz()">🔄 もう一度探検する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────
+const QS = [
+  // Axis A: 探索スタイル (Map=計画/Instinct=直感) × 4
+  {ax:'A', scene:'ジャングルの入口に到達した。目の前に無数の踏み跡が広がっている。',
+   text:'あなたはまず何をする？',
+   opts:[{t:'地図を広げてルートを確認し、最適な道筋を決める。',v:'M'},
+         {t:'とりあえず一歩踏み出して、雰囲気で進む方向を決める。',v:'X'}]},
+  {ax:'A', scene:'川の中洲で、2本の橋のどちらかを渡らなければならない。',
+   text:'あなたの選び方は？',
+   opts:[{t:'両方の橋を観察・比較してから、より安全な方を選ぶ。',v:'M'},
+         {t:'直感的に「こっちだ」と思った橋へすぐ踏み出す。',v:'X'}]},
+  {ax:'A', scene:'茂みの奥から聞き慣れない鳴き声が聞こえてきた。',
+   text:'あなたはどう動く？',
+   opts:[{t:'立ち止まって音の方向や距離を分析してから行動する。',v:'M'},
+         {t:'面白そうだと感じたら即座に音のする方へ向かう。',v:'X'}]},
+  {ax:'A', scene:'今夜の野営地を決めなければならない。',
+   text:'あなたの判断基準は？',
+   opts:[{t:'水源・地形・風向きなどのデータから最適な場所を割り出す。',v:'M'},
+         {t:'「ここが良い」というビビッときた感覚で決める。',v:'X'}]},
+  // Axis B: エネルギー源 (Together/Solo) × 4
+  {ax:'B', scene:'長い探索を終えてキャンプに戻ってきた。体力が半分まで減っている。',
+   text:'エネルギーを回復するために、あなたが選ぶのは？',
+   opts:[{t:'仲間と焚き火を囲み、今日の出来事を賑やかに語り合う。',v:'T'},
+         {t:'テントに一人で籠り、静かに自分の内側を整える時間を取る。',v:'S'}]},
+  {ax:'B', scene:'未知のエリアを初めて調査することになった。',
+   text:'あなたが最もパフォーマンスを発揮できるのは？',
+   opts:[{t:'仲間と声を掛け合い、役割分担しながら探索するとき。',v:'T'},
+         {t:'自分のペースで、集中して一人で観察・記録するとき。',v:'S'}]},
+  {ax:'B', scene:'探検隊のリーダーが急に不在になった。',
+   text:'あなたはどう動く？',
+   opts:[{t:'チームに声をかけ、みんなで話し合って次の行動を決める。',v:'T'},
+         {t:'まず自分で状況を整理し、冷静に判断してから動く。',v:'S'}]},
+  {ax:'B', scene:'大きな発見をした！この喜びをどう表現する？',
+   text:'あなたの自然な反応は？',
+   opts:[{t:'すぐに仲間に叫んで、一緒に喜びを分かち合いたい。',v:'T'},
+         {t:'まず自分の中でじっくり噛みしめてから、落ち着いて伝える。',v:'S'}]},
+  // Axis C: 判断基準 (Logic/Sense) × 4
+  {ax:'C', scene:'遺跡の壁に謎の図形が描かれている。解読に時間がかかりそうだ。',
+   text:'あなたのアプローチは？',
+   opts:[{t:'図形のパターンや数学的規則性を論理的に分析する。',v:'L'},
+         {t:'図形全体の雰囲気や自分の感覚から意味を読み取ろうとする。',v:'F'}]},
+  {ax:'C', scene:'仲間の一人が「このルートは危険だ」と主張している。',
+   text:'あなたはどう判断する？',
+   opts:[{t:'危険の根拠となるデータや証拠を確認してから判断する。',v:'L'},
+         {t:'仲間の表情や雰囲気から「本当に危ないのか」を感じ取る。',v:'F'}]},
+  {ax:'C', scene:'ジャングルで見知らぬ動物の死骸を発見した。',
+   text:'あなたの思考は？',
+   opts:[{t:'死因・生態系への影響・安全かどうかを客観的に検討する。',v:'L'},
+         {t:'この命に対する感情的な想いや、場の空気感を大切にする。',v:'F'}]},
+  {ax:'C', scene:'探検の最終決断：二手に分かれて別々のルートを探索するか、全員で一つのルートを進むか。',
+   text:'あなたが重視する判断軸は？',
+   opts:[{t:'リスクと効率を数値化し、最も合理的な選択肢を選ぶ。',v:'L'},
+         {t:'全員の気持ちや現在のチームの状態を最優先に考える。',v:'F'}]},
+];
+
+const TYPES = {
+  MTL:{ emoji:'🐆', name:'ジャガー', sub:'計画的・一匹狼・論理派',
+    tags:['🎯 戦略家','🔧 実行力','🧠 論理思考'],
+    desc:'計画を緻密に組み立て、一人で黙々と突破する頂点の捕食者。感情より結果、雰囲気より根拠。目標が定まれば誰にも止められない。',
+    cells:[['強み','精確な計画力'],['弱み','柔軟性に欠けることも'],['エネルギー','達成と証明'],['一言で','孤高の戦略家']]},
+  MTF:{ emoji:'🦉', name:'フクロウ', sub:'計画的・一匹狼・感性派',
+    tags:['🌙 洞察力','📖 深い観察眼','💫 静かな共感'],
+    desc:'闇の中を静かに見渡す洞察者。綿密な観察と深い感性で真実を掴む。口数は少ないが、一言が核心を射抜く。',
+    cells:[['強み','鋭い洞察と共感'],['弱み','完璧主義になりがち'],['エネルギー','意味と使命感'],['一言で','静かな賢者']]},
+  MTS:{ emoji:'🐢', name:'カメ', sub:'計画的・群れ・感性派',
+    tags:['🛡️ 安定感','🤝 チームの要','📋 信頼性'],
+    desc:'仲間を守りながら確実に前へ進む。計画と絆の両方を大切にし、チームの土台となる存在。急がば回れを体現する。',
+    cells:[['強み','責任感と安定感'],['弱み','変化に慎重'],['エネルギー','仲間への貢献'],['一言で','堅実な守護者']]},
+  XML:{ emoji:'🐍', name:'ヘビ', sub:'直感型・一匹狼・論理派',
+    tags:['⚡ 即断即決','🔬 分析家','🕵️ 観察眼'],
+    desc:'直感と論理を高速で融合させ、音もなく最適解へ到達する。行動しながら考えるタイプ。手を動かすことが思考の一部。',
+    cells:[['強み','素早い状況判断'],['弱み','感情表現が苦手'],['エネルギー','技術の習得'],['一言で','静かなる天才']]},
+  XXL:{ emoji:'🦅', name:'ワシ', sub:'直感型・一匹狼・論理派※',
+    tags:['👁️ 俯瞰力','🔮 直感','⚡ 機動力'],
+    desc:'高い視点から全体を俯瞰し、直感と分析を瞬時に組み合わせる。自由と知性の化身。',
+    cells:[['強み','俯瞰と決断'],['弱み','地道な作業が苦手'],['エネルギー','自由と探索'],['一言で','孤高の俯瞰者']]},
+  XTL:{ emoji:'🦜', name:'オウム', sub:'直感型・群れ・論理派',
+    tags:['💡 発想力','🗣️ 議論好き','🌀 革新的'],
+    desc:'群れの中で次々と新しいアイデアを発信する知的な冒険家。場の空気を読みながらも既成概念を壊し続ける。',
+    cells:[['強み','独創性と適応力'],['弱み','飽きやすい'],['エネルギー','刺激と発見'],['一言で','知的な扇動者']]},
+  XTF:{ emoji:'🦋', name:'チョウチョ', sub:'直感型・群れ・感性派',
+    tags:['✨ 創造性','🌈 情熱','🔮 感受性'],
+    desc:'ジャングル中を自由に飛び回り、誰よりも多くの可能性を見つける感性の持ち主。仲間に彩りと希望を与える。',
+    cells:[['強み','創造力と熱意'],['弱み','計画が苦手'],['エネルギー','繋がりと可能性'],['一言で','自由な探索者']]},
+  MXF:{ emoji:'🐬', name:'イルカ', sub:'計画的・群れ・感性派※',
+    tags:['💚 共感力','🌟 カリスマ','🤝 調和'],
+    desc:'仲間の感情を鋭く読み取りながら、明確なビジョンでチームを導く。賢さと温かさを兼ね備えたナビゲーター。',
+    cells:[['強み','人心掌握と共感'],['弱み','自己犠牲しがち'],['エネルギー','人の成長'],['一言で','共感のリーダー']]},
+};
+
+let sc={A:{M:0,X:0},B:{T:0,S:0},C:{L:0,F:0}};
+let cur=0, selVal=null;
+
+// ─── TRANSITION SCENES ─────────────────────────────────
+const SCENES=[
+  { label:'ジャングルの奥へ進んでいます',
+    draw:(s)=>{
+      // Explorer walking through jungle path
+      s.innerHTML=`
+      <defs>
+        <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0d2b0d"/>
+          <stop offset="100%" stop-color="#1a4a1a"/>
+        </linearGradient>
+      </defs>
+      <!-- Sky -->
+      <rect width="520" height="320" fill="url(#sky1)"/>
+      <!-- Ground -->
+      <rect y="240" width="520" height="80" fill="#051a05"/>
+      <ellipse cx="260" cy="240" rx="300" ry="12" fill="#072007"/>
+      <!-- Path -->
+      <path d="M180 320 Q220 260 260 240 Q300 220 340 240 Q380 260 400 320" fill="none" stroke="#1a3a1a" stroke-width="28"/>
+      <path d="M200 320 Q235 265 260 245 Q285 225 320 245 Q360 265 380 320" fill="none" stroke="#0d2a0d" stroke-width="18"/>
+      <!-- Trees L -->
+      <g fill="#0a2a0a">
+        <polygon points="30,240 80,80 130,240"/>
+        <polygon points="60,240 105,110 150,240"/>
+        <polygon points="0,240 40,130 80,240"/>
+      </g>
+      <!-- Trees R -->
+      <g fill="#0a2a0a">
+        <polygon points="390,240 440,90 490,240"/>
+        <polygon points="420,240 465,120 510,240"/>
+        <polygon points="370,240 410,140 450,240"/>
+      </g>
+      <!-- Leaves overlay -->
+      <g fill="#0d380d" opacity=".7">
+        <ellipse cx="80" cy="155" rx="55" ry="30"/>
+        <ellipse cx="440" cy="145" rx="55" ry="30"/>
+      </g>
+      <!-- Explorer (stick figure walking) -->
+      <g transform="translate(230,185)" class="explorer">
+        <style>.explorer{animation:walk .6s ease-in-out infinite alternate;transform-origin:10px 50px;}
+        @keyframes walk{from{transform:translateX(-6px)}to{transform:translateX(6px)}}</style>
+        <!-- body -->
+        <circle cx="10" cy="8" r="9" fill="#c8a064" stroke="#a07040" stroke-width="1.5"/>
+        <!-- hat -->
+        <ellipse cx="10" cy="2" rx="13" ry="4" fill="#8b6914"/>
+        <rect x="4" y="-3" width="12" height="7" rx="2" fill="#8b6914"/>
+        <!-- torso -->
+        <rect x="4" y="17" width="12" height="20" rx="3" fill="#4a7c4a"/>
+        <!-- arms -->
+        <line x1="4" y1="22" x2="-4" y2="36" stroke="#c8a064" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="16" y1="22" x2="24" y2="36" stroke="#c8a064" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- stick: right hand -->
+        <line x1="24" y1="36" x2="28" y2="55" stroke="#8b6914" stroke-width="2" stroke-linecap="round"/>
+        <!-- legs -->
+        <line x1="8" y1="37" x2="2" y2="56" stroke="#4a7c4a" stroke-width="3" stroke-linecap="round"/>
+        <line x1="12" y1="37" x2="18" y2="56" stroke="#4a7c4a" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <!-- Fireflies -->
+      <circle cx="155" cy="180" r="3" fill="#aaff88" opacity=".8"><animate attributeName="opacity" values=".2;1;.2" dur="1.5s" repeatCount="indefinite"/></circle>
+      <circle cx="370" cy="165" r="2.5" fill="#aaff88" opacity=".7"><animate attributeName="opacity" values="1;.1;1" dur="1.8s" repeatCount="indefinite"/></circle>
+      <circle cx="200" cy="210" r="2" fill="#ccffaa" opacity=".6"><animate attributeName="opacity" values=".5;1;.5" dur="2.2s" repeatCount="indefinite"/></circle>
+      `;
+    }
+  },
+  { label:'新たな領域へ踏み込みます',
+    draw:(s)=>{
+      s.innerHTML=`
+      <defs>
+        <radialGradient id="expand" cx="50%" cy="55%" r="50%">
+          <stop offset="0%" stop-color="#1a5c1a" stop-opacity=".6"/>
+          <stop offset="100%" stop-color="#071407" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#091f09"/>
+          <stop offset="100%" stop-color="#153015"/>
+        </linearGradient>
+      </defs>
+      <rect width="520" height="320" fill="url(#sky2)"/>
+      <!-- Expanding ripple circles -->
+      <g fill="none" stroke="#2ecc71" transform="translate(260,160)">
+        <circle r="30" opacity=".9" stroke-width="2"><animate attributeName="r" values="20;140" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".8;0" dur="2s" repeatCount="indefinite"/></circle>
+        <circle r="80" opacity=".5" stroke-width="1.5"><animate attributeName="r" values="20;140" dur="2s" begin=".5s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;0" dur="2s" begin=".5s" repeatCount="indefinite"/></circle>
+        <circle r="120" opacity=".3" stroke-width="1"><animate attributeName="r" values="20;140" dur="2s" begin="1s" repeatCount="indefinite"/><animate attributeName="opacity" values=".4;0" dur="2s" begin="1s" repeatCount="indefinite"/></circle>
+      </g>
+      <ellipse cx="260" cy="160" rx="28" ry="28" fill="url(#expand)"/>
+      <!-- Ground -->
+      <rect y="240" width="520" height="80" fill="#051505"/>
+      <!-- Dense trees framing -->
+      <g fill="#071e07">
+        <polygon points="0,320 0,60 70,60 50,320"/>
+        <polygon points="520,320 520,60 450,60 470,320"/>
+        <polygon points="40,320 30,120 100,120 90,320"/>
+        <polygon points="480,320 490,120 420,120 430,320"/>
+      </g>
+      <!-- Opening gap in the middle with light seeping through -->
+      <path d="M180,320 Q200,200 260,140 Q320,200 340,320Z" fill="#0a2a0a" opacity=".6"/>
+      <!-- Glowing vines at edges -->
+      <path d="M0,80 Q30,140 0,200" fill="none" stroke="#1a5c1a" stroke-width="3" opacity=".7"/>
+      <path d="M520,80 Q490,140 520,200" fill="none" stroke="#1a5c1a" stroke-width="3" opacity=".7"/>
+      <!-- Small figure at horizon -->
+      <g transform="translate(250,210)" opacity=".9">
+        <circle cx="10" cy="6" r="7" fill="#c8a064"/>
+        <rect x="4" y="13" width="12" height="16" rx="2" fill="#4a7c4a"/>
+        <line x1="8" y1="29" x2="4" y2="44" stroke="#4a7c4a" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="12" y1="29" x2="16" y2="44" stroke="#4a7c4a" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      <!-- Stars / fireflies -->
+      <circle cx="140" cy="100" r="2" fill="#88ff88"><animate attributeName="opacity" values=".1;1;.1" dur="2s" repeatCount="indefinite"/></circle>
+      <circle cx="380" cy="90" r="2.5" fill="#aaffaa"><animate attributeName="opacity" values="1;.1;1" dur="1.7s" repeatCount="indefinite"/></circle>
+      <circle cx="260" cy="70" r="1.5" fill="#ccffcc"><animate attributeName="opacity" values=".5;1;.5" dur="2.5s" repeatCount="indefinite"/></circle>
+      `;
+    }
+  },
+  { label:'未知のゾーンへ突入中',
+    draw:(s)=>{
+      s.innerHTML=`
+      <defs>
+        <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#060d06"/>
+          <stop offset="100%" stop-color="#0f200f"/>
+        </linearGradient>
+        <filter id="blur1"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+      <rect width="520" height="320" fill="url(#sky3)"/>
+      <!-- Speed lines (motion blur) -->
+      <g stroke="#1a5c1a" opacity=".35">
+        ${Array.from({length:20},(_,i)=>{
+          const y=10+i*15, x=Math.random()*100;
+          return `<line x1="${x}" y1="${y}" x2="${x+380+Math.random()*60}" y2="${y+2}" stroke-width="${1+Math.random()}"/>`;
+        }).join('')}
+      </g>
+      <!-- Tunnel of trees -->
+      <g fill="#071407">
+        <!-- Left wall -->
+        <polygon points="0,320 0,0 30,0 90,320"/>
+        <polygon points="30,320 20,0 80,0 110,320"/>
+        <!-- Right wall -->
+        <polygon points="520,320 520,0 490,0 430,320"/>
+        <polygon points="490,320 500,0 440,0 410,320"/>
+      </g>
+      <!-- Canopy top -->
+      <rect x="0" y="0" width="520" height="80" fill="#050e05"/>
+      <path d="M0,80 Q130,20 260,60 Q390,20 520,80" fill="#071407"/>
+      <!-- Ground -->
+      <rect y="260" width="520" height="60" fill="#030a03"/>
+      <!-- Rushing particles -->
+      <g fill="#2ecc71">
+        ${Array.from({length:14},(_,i)=>{
+          const y=80+i*13, size=1+Math.random()*2;
+          return `<circle cy="${y}" r="${size}" opacity="${.4+Math.random()*.5}"><animate attributeName="cx" values="520;-10" dur="${.4+Math.random()*.4}s" repeatCount="indefinite" begin="${Math.random()*.5}s"/></circle>`;
+        }).join('')}
+      </g>
+      <!-- Figure running (leaning forward) -->
+      <g transform="translate(215,165)">
+        <style>.runner{animation:run .4s ease-in-out infinite alternate;transform-origin:20px 40px;}
+        @keyframes run{from{transform:rotate(-8deg) translateX(-3px)}to{transform:rotate(5deg) translateX(3px)}}</style>
+        <g class="runner">
+          <circle cx="22" cy="8" r="10" fill="#c8a064" stroke="#a07040" stroke-width="1.5"/>
+          <ellipse cx="22" cy="1" rx="14" ry="4" fill="#8b6914"/>
+          <rect x="15" y="-4" width="13" height="7" rx="2" fill="#8b6914"/>
+          <!-- Leaning torso -->
+          <rect x="15" y="18" width="13" height="20" rx="3" fill="#4a7c4a" transform="rotate(-10,21,28)"/>
+          <!-- Arms pumping -->
+          <line x1="15" y1="24" x2="4" y2="14" stroke="#c8a064" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="24" x2="40" y2="34" stroke="#c8a064" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Legs stride -->
+          <line x1="18" y1="38" x2="6" y2="56" stroke="#4a7c4a" stroke-width="3" stroke-linecap="round"/>
+          <line x1="24" y1="38" x2="36" y2="52" stroke="#4a7c4a" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- Motion streaks behind figure -->
+      <g stroke="#1a4a1a" opacity=".6">
+        <line x1="205" y1="180" x2="160" y2="182" stroke-width="2"/>
+        <line x1="208" y1="195" x2="155" y2="197" stroke-width="1.5"/>
+        <line x1="206" y1="170" x2="162" y2="172" stroke-width="1"/>
+      </g>
+      `;
+    }
+  },
+  { label:'秘境の核心に近づいています',
+    draw:(s)=>{
+      s.innerHTML=`
+      <defs>
+        <radialGradient id="glow4" cx="50%" cy="45%" r="35%">
+          <stop offset="0%" stop-color="#7fff7f" stop-opacity=".25"/>
+          <stop offset="60%" stop-color="#2ecc71" stop-opacity=".08"/>
+          <stop offset="100%" stop-color="#071407" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#030a03"/>
+          <stop offset="100%" stop-color="#0a1a0a"/>
+        </linearGradient>
+        <filter id="gf"><feGaussianBlur stdDeviation="5"/></filter>
+      </defs>
+      <rect width="520" height="320" fill="url(#sky4)"/>
+      <!-- Deep jungle silhouette -->
+      <g fill="#030d03">
+        <polygon points="0,320 0,40 80,40 60,320"/>
+        <polygon points="50,320 40,80 120,80 100,320"/>
+        <polygon points="520,320 520,40 440,40 460,320"/>
+        <polygon points="470,320 480,80 400,80 420,320"/>
+        <polygon points="110,320 100,120 180,120 160,320"/>
+        <polygon points="410,320 420,120 340,120 360,320"/>
+      </g>
+      <!-- Ground -->
+      <rect y="265" width="520" height="55" fill="#020902"/>
+      <!-- Glowing orb far in distance -->
+      <ellipse cx="260" cy="138" rx="22" ry="22" fill="#7fff7f" opacity=".18" filter="url(#gf)"/>
+      <ellipse cx="260" cy="138" rx="14" ry="14" fill="#afffaf" opacity=".3" filter="url(#gf)"/>
+      <ellipse cx="260" cy="138" rx="7" ry="7" fill="#ffffff" opacity=".55"><animate attributeName="opacity" values=".4;.8;.4" dur="2s" repeatCount="indefinite"/></ellipse>
+      <!-- Glow halo -->
+      <ellipse cx="260" cy="138" rx="60" ry="50" fill="url(#glow4)"/>
+      <!-- Light rays from orb -->
+      <g stroke="#4eff4e" opacity=".15" stroke-width="1">
+        ${[-60,-40,-20,0,20,40,60].map(a=>`<line x1="260" y1="138" x2="${260+Math.cos(a*Math.PI/180)*200}" y2="${138+Math.sin(a*Math.PI/180)*200}"/>`).join('')}
+      </g>
+      <!-- Floating particles rising toward orb -->
+      <g fill="#88ff88">
+        ${Array.from({length:10},(_,i)=>
+          `<circle cx="${220+i*8}" r="2" opacity=".7"><animate attributeName="cy" values="280;${100+i*5}" dur="${2+i*.3}s" repeatCount="indefinite" begin="${i*.2}s"/><animate attributeName="opacity" values=".1;.8;.1" dur="${2+i*.3}s" repeatCount="indefinite" begin="${i*.2}s"/></circle>`
+        ).join('')}
+      </g>
+      <!-- Figure silhouette approaching glow -->
+      <g transform="translate(240,215)" opacity=".95">
+        <circle cx="10" cy="5" r="8" fill="#1a3a1a"/>
+        <ellipse cx="10" cy="0" rx="11" ry="3.5" fill="#162616"/>
+        <rect x="4" y="13" width="12" height="18" rx="2" fill="#1a3a1a"/>
+        <line x1="8" y1="31" x2="4" y2="48" stroke="#1a3a1a" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="12" y1="31" x2="16" y2="48" stroke="#1a3a1a" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      `;
+    }
+  },
+  { label:'あなたの本質に辿り着きます',
+    draw:(s)=>{
+      s.innerHTML=`
+      <defs>
+        <radialGradient id="burst" cx="50%" cy="48%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity=".9"/>
+          <stop offset="15%" stop-color="#afffaf" stop-opacity=".7"/>
+          <stop offset="40%" stop-color="#2ecc71" stop-opacity=".4"/>
+          <stop offset="70%" stop-color="#1a7a1a" stop-opacity=".15"/>
+          <stop offset="100%" stop-color="#071407" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="gf2"><feGaussianBlur stdDeviation="8"/></filter>
+        <filter id="gf3"><feGaussianBlur stdDeviation="2"/></filter>
+      </defs>
+      <rect width="520" height="320" fill="#030a03"/>
+      <!-- Burst glow -->
+      <ellipse cx="260" cy="150" rx="260" ry="200" fill="url(#burst)" opacity=".9"/>
+      <!-- Intense center -->
+      <ellipse cx="260" cy="150" rx="80" ry="70" fill="#4eff4e" opacity=".15" filter="url(#gf2)"/>
+      <ellipse cx="260" cy="150" rx="40" ry="35" fill="#afffaf" opacity=".4" filter="url(#gf2)"/>
+      <ellipse cx="260" cy="150" rx="18" ry="16" fill="#ffffff" opacity=".85" filter="url(#gf3)"/>
+      <!-- God rays -->
+      <g opacity=".25">
+        ${Array.from({length:16},(_,i)=>{
+          const a=i*22.5*Math.PI/180;
+          return `<line x1="260" y1="150" x2="${260+Math.cos(a)*300}" y2="${150+Math.sin(a)*250}" stroke="#7fff7f" stroke-width="${1.5+Math.random()}"/>`;
+        }).join('')}
+      </g>
+      <!-- Sparkles -->
+      <g fill="#ffffff">
+        ${[[120,80],[390,70],[160,220],[370,200],[80,150],[440,130],[260,50],[200,260],[320,255]].map(([x,y],i)=>
+          `<polygon points="${x},${y-6} ${x+2},${y-1} ${x+6},${y} ${x+2},${y+1} ${x},${y+6} ${x-2},${y+1} ${x-6},${y} ${x-2},${y-1}" opacity=".8"><animate attributeName="opacity" values=".2;1;.2" dur="${1+i*.25}s" repeatCount="indefinite" begin="${i*.18}s"/></polygon>`
+        ).join('')}
+      </g>
+      <!-- Floating particles -->
+      <g fill="#ccffcc">
+        ${Array.from({length:16},(_,i)=>
+          `<circle cx="${80+i*24}" r="${1.5+Math.random()}" opacity=".8"><animate attributeName="cy" values="300;20" dur="${1.5+i*.2}s" repeatCount="indefinite" begin="${i*.1}s"/><animate attributeName="opacity" values="0;1;0" dur="${1.5+i*.2}s" repeatCount="indefinite" begin="${i*.1}s"/></circle>`
+        ).join('')}
+      </g>
+      <!-- Figure bathed in light (silhouette with glow outline) -->
+      <g transform="translate(240,195)">
+        <ellipse cx="10" cy="-5" rx="20" ry="18" fill="#2ecc71" opacity=".2" filter="url(#gf3)"/>
+        <circle cx="10" cy="5" r="9" fill="#e8f5e9"/>
+        <ellipse cx="10" cy="0" rx="12" ry="3.5" fill="#c8e6c9"/>
+        <rect x="3" y="14" width="13" height="19" rx="3" fill="#e8f5e9"/>
+        <!-- Arms raised in triumph -->
+        <line x1="3" y1="20" x2="-8" y2="8" stroke="#e8f5e9" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="17" y1="20" x2="28" y2="8" stroke="#e8f5e9" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="3" y1="33" x2="-2" y2="52" stroke="#e8f5e9" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="14" y1="33" x2="19" y2="52" stroke="#e8f5e9" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      `;
+    }
+  }
+];
+
+// ─── PARTICLES ────────────────────────────────────────
+function initParticles(){
+  const bg=document.getElementById('bg');
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    const sz=2+Math.random()*3;
+    p.style.cssText=`width:${sz}px;height:${sz}px;background:rgba(${100+Math.random()*60},255,${100+Math.random()*60},${.3+Math.random()*.4});left:${Math.random()*100}%;animation-duration:${9+Math.random()*12}s;animation-delay:${Math.random()*10}s;`;
+    bg.appendChild(p);
+  }
+}
+
+// ─── QUIZ LOGIC ────────────────────────────────────────
+function getDepthLabel(q){
+  if(q<3) return 'DEPTH 1 — 🏕️ 入口付近';
+  if(q<6) return 'DEPTH 2 — 🌿 深い茂みへ';
+  if(q<9) return 'DEPTH 3 — 🦜 ジャングル深部';
+  return 'DEPTH 4 — 🌸 謎の秘境';
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+function startQuiz(){
+  sc={A:{M:0,X:0},B:{T:0,S:0},C:{L:0,F:0}};
+  cur=0; selVal=null;
+  showScreen('question');
+  renderQ();
+}
+
+function renderQ(){
+  const q=QS[cur];
+  document.getElementById('prog').style.width=(cur/QS.length*100)+'%';
+  document.getElementById('qDepth').textContent=getDepthLabel(cur);
+  document.getElementById('qNum').textContent=String(cur+1).padStart(2,'0');
+  document.getElementById('qScene').textContent=q.scene;
+  document.getElementById('qText').textContent=q.text;
+  const el=document.getElementById('opts');
+  el.innerHTML=''; selVal=null;
+  q.opts.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.textContent=o.t;
+    b.onclick=()=>pick(o.v,b);
+    el.appendChild(b);
+  });
+}
+
+function pick(val,btn){
+  document.querySelectorAll('.opt').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel'); selVal=val;
+  setTimeout(()=>{
+    const q=QS[cur];
+    sc[q.ax][val]++;
+    cur++;
+    const sceneIdx=Math.min(Math.floor(cur/(QS.length/5)),4);
+    if(cur>=QS.length) showTrans(4,()=>showResult());
+    else showTrans(sceneIdx,()=>renderQ());
+  },320);
+}
+
+function showTrans(idx,cb){
+  const overlay=document.getElementById('trans');
+  const sc2=SCENES[idx];
+  sc2.draw(document.getElementById('transSvg'));
+  document.getElementById('transLabel').textContent=sc2.label;
+  overlay.classList.add('show');
+  setTimeout(()=>{overlay.classList.remove('show');setTimeout(cb,350);},1300);
+}
+
+function getType(){
+  const A=sc.A.M>=sc.A.X?'M':'X';
+  const B=sc.B.T>=sc.B.S?'T':'S';
+  const C=sc.C.L>=sc.C.F?'L':'F';
+  const key=A+B+C;
+  const map={
+    MTL:'MTL',MTF:'MTF',MTS:'MTS',MSL:'MTL',MSF:'MTS',
+    XTL:'XTL',XTF:'XTF',XSL:'XML',XSF:'XTF',
+    XML:'XML',XXL:'XXL',MXF:'MXF',MXL:'MTL'
+  };
+  return TYPES[map[key]||'XTL'];
+}
+
+function showResult(){
+  document.getElementById('prog').style.width='100%';
+  const t=getType();
+  document.getElementById('rAnimal').textContent=t.emoji;
+  document.getElementById('rType').textContent=t.sub;
+  document.getElementById('rName').textContent=t.name+' タイプ';
+  document.getElementById('rTags').innerHTML=t.tags.map(g=>`<span class="tag">${g}</span>`).join('');
+  // Axes
+  const totA=QS.filter(q=>q.ax==='A').length;
+  const totB=QS.filter(q=>q.ax==='B').length;
+  const totC=QS.filter(q=>q.ax==='C').length;
+  document.getElementById('axes').innerHTML=[
+    {l:'計画的 📋',r:'直感的 🔮',pct:Math.round(sc.A.M/totA*100)},
+    {l:'仲間と ☀️',r:'一人で 🌙',pct:Math.round(sc.B.T/totB*100)},
+    {l:'論理派 🧠',r:'感性派 💚',pct:Math.round(sc.C.L/totC*100)},
+  ].map(a=>`
+    <div class="ax-row">
+      <div class="ax-lbs"><span>${a.l}</span><span>${a.r}</span></div>
+      <div class="ax-track"><div class="ax-fill" style="width:${a.pct}%"></div></div>
+    </div>`).join('');
+  document.getElementById('rDesc').textContent=t.desc;
+  document.getElementById('rGrid').innerHTML=t.cells.map(([l,v])=>`
+    <div class="r-cell"><div class="r-clabel">${l}</div><div class="r-cval">${v}</div></div>`).join('');
+  showScreen('result');
+}
+
+function doShare(){
+  const t=getType();
+  const txt=`🌿 ジャングル探検性格診断\n\n私は「${t.name}」タイプ ${t.emoji}\n${t.sub}\n\n${t.tags.join(' ')}\n\n#ジャングル探検診断 #学祭`;
+  if(navigator.share) navigator.share({title:'ジャングル探検 性格診断',text:txt});
+  else navigator.clipboard.writeText(txt).then(()=>alert('結果をコピーしました！'));
+}
+
+function restartQuiz(){
+  showTrans(0,()=>{showScreen('start');document.getElementById('prog').style.width='0%';});
+}
+
+function checkPw(){
+  const v=document.getElementById('pwInput').value;
+  if(v==='sowwa2026'){showScreen('start');}
+  else{const e=document.getElementById('pwErr');e.textContent='合言葉が違います 🌿';setTimeout(()=>e.textContent='',2000);}
+}
+initParticles();
+</script>
+</body>
+</html>

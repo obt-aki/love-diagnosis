@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋愛タイプ診断</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #00ff41;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  .scanline {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,65,0.015) 2px,
+      rgba(0,255,65,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .terminal {
+    background: #0d1117;
+    border: 1px solid #00ff41;
+    border-radius: 6px;
+    box-shadow: 0 0 30px rgba(0,255,65,0.2), inset 0 0 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+
+  .terminal-header {
+    background: #1a1a2e;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #00ff4133;
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28ca41; }
+
+  .terminal-title {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #00ff4188;
+    letter-spacing: 2px;
+  }
+
+  .terminal-body { padding: 24px; }
+
+  .prompt { color: #00ff4166; font-size: 12px; margin-bottom: 4px; }
+  .prompt span { color: #00ff41; }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* START SCREEN */
+  .ascii-art {
+    color: #00ff41;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 0 0 8px #00ff41;
+    white-space: pre;
+  }
+
+  .title-main {
+    font-size: 22px;
+    color: #00ff41;
+    text-align: center;
+    text-shadow: 0 0 12px #00ff41;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+  }
+
+  .title-sub {
+    font-size: 11px;
+    color: #00ff4188;
+    text-align: center;
+    letter-spacing: 3px;
+    margin-bottom: 28px;
+  }
+
+  .info-block {
+    background: #00ff410d;
+    border: 1px solid #00ff4133;
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    line-height: 2;
+    color: #00dd38;
+  }
+
+  .info-block .key { color: #00ff41; }
+
+  /* QUESTION SCREEN */
+  .progress-bar-wrap {
+    margin-bottom: 20px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    color: #00ff4166;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: #00ff4122;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #00ff41;
+    box-shadow: 0 0 8px #00ff41;
+    transition: width 0.4s ease;
+  }
+
+  .q-number {
+    font-size: 11px;
+    color: #00ff4166;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .q-text {
+    font-size: 16px;
+    color: #00ff41;
+    line-height: 1.7;
+    margin-bottom: 24px;
+    text-shadow: 0 0 6px rgba(0,255,65,0.4);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 12px; }
+
+  .choice-btn {
+    background: transparent;
+    border: 1px solid #00ff4144;
+    color: #00dd38;
+    padding: 14px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .choice-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #00ff4108;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .choice-btn:hover {
+    border-color: #00ff41;
+    color: #00ff41;
+    box-shadow: 0 0 12px rgba(0,255,65,0.25);
+    transform: translateX(4px);
+  }
+
+  .choice-btn:hover::before { opacity: 1; }
+
+  .choice-label {
+    font-family: 'Share Tech Mono', monospace;
+    color: #00ff4188;
+    margin-right: 10px;
+    font-size: 12px;
+  }
+
+  /* RESULT SCREEN */
+  .result-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .result-badge {
+    display: inline-block;
+    font-size: 40px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 8px rgba(0,255,65,0.6));
+  }
+
+  .result-type {
+    font-size: 24px;
+    color: #00ff41;
+    letter-spacing: 3px;
+    text-shadow: 0 0 16px #00ff41;
+    margin-bottom: 6px;
+  }
+
+  .result-en {
+    font-size: 11px;
+    color: #00ff4166;
+    letter-spacing: 4px;
+  }
+
+  .result-card {
+    background: #00ff410d;
+    border: 1px solid #00ff4133;
+    border-radius: 4px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .result-card h3 {
+    font-size: 11px;
+    color: #00ff4188;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+  }
+
+  .result-card p {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    color: #00dd38;
+    line-height: 1.8;
+  }
+
+  .compat-tag {
+    display: inline-block;
+    background: #00ff4122;
+    border: 1px solid #00ff4155;
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 12px;
+    margin: 4px 4px 0 0;
+    color: #00ff41;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat-item {
+    background: #00ff410d;
+    border: 1px solid #00ff4322;
+    border-radius: 4px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-label { font-size: 10px; color: #00ff4166; letter-spacing: 2px; margin-bottom: 6px; }
+  .stat-bar-track { height: 3px; background: #00ff4122; border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+  .stat-bar-fill { height: 100%; background: #00ff41; box-shadow: 0 0 6px #00ff41; }
+  .stat-val { font-size: 11px; color: #00ff4188; }
+
+  /* BUTTON */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 20px;
+    transition: all 0.2s;
+    text-shadow: 0 0 8px #00ff41;
+    box-shadow: 0 0 12px rgba(0,255,65,0.1);
+  }
+
+  .btn:hover {
+    background: #00ff4115;
+    box-shadow: 0 0 20px rgba(0,255,65,0.3);
+    transform: translateY(-1px);
+  }
+
+  /* TYPING EFFECT */
+  .typing { overflow: hidden; white-space: nowrap; border-right: 2px solid #00ff41; animation: typing 1.2s steps(30,end), blink 0.7s step-end infinite alternate; }
+  @keyframes typing { from { width: 0 } to { width: 100% } }
+  @keyframes blink { from { border-color: transparent } to { border-color: #00ff41 } }
+
+  .cursor { display: inline-block; width: 8px; height: 14px; background: #00ff41; animation: blink 0.7s step-end infinite; vertical-align: middle; margin-left: 2px; }
+
+  .flash { animation: flash 0.3s ease; }
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="container">
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <div class="terminal-title">love_type_diagnosis.exe — bash</div>
+    </div>
+    <div class="terminal-body">
+
+      <!-- START SCREEN -->
+      <div class="screen active" id="screen-start">
+        <div class="prompt">[root@festival ~]$ <span>./love_diagnosis --start</span></div>
+        <br>
+        <pre class="ascii-art">
+ ██╗      ██████╗ ██╗   ██╗███████╗
+ ██║     ██╔═══██╗██║   ██║██╔════╝
+ ██║     ██║   ██║██║   ██║█████╗  
+ ██║     ██║   ██║╚██╗ ██╔╝██╔══╝  
+ ███████╗╚██████╔╝ ╚████╔╝ ███████╗
+ ╚══════╝ ╚═════╝   ╚═══╝  ╚══════╝
+        </pre>
+        <div class="title-main">恋愛タイプ診断</div>
+        <div class="title-sub">LOVE TYPE DIAGNOSIS v2.4.1</div>
+        <div class="info-block">
+          <div><span class="key">$ system:</span> 工学系恋愛アルゴリズム分析エンジン</div>
+          <div><span class="key">$ version:</span> 2.4.1-stable</div>
+          <div><span class="key">$ questions:</span> 10問（約3分）</div>
+          <div><span class="key">$ output:</span> 4種類のラブタイプを判定</div>
+          <div><span class="key">$ status:</span> <span style="color:#00ff41">● READY</span></div>
+        </div>
+        <button class="btn" onclick="startDiagnosis()">▶  診断をスタート [ENTER]</button>
+      </div>
+
+      <!-- QUESTION SCREEN -->
+      <div class="screen" id="screen-question">
+        <div class="prompt" id="q-prompt">[root@festival ~]$ <span>analyzing_love_type --query</span></div>
+        <br>
+        <div class="progress-bar-wrap">
+          <div class="progress-label">
+            <span>PROGRESS</span>
+            <span id="q-counter">1 / 10</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width:10%"></div>
+          </div>
+        </div>
+        <div class="q-number" id="q-number">[ QUERY_01 ]</div>
+        <div class="q-text" id="q-text"></div>
+        <div class="choices" id="choices"></div>
+      </div>
+
+      <!-- RESULT SCREEN -->
+      <div class="screen" id="screen-result">
+        <div class="prompt">[root@festival ~]$ <span>output --result --verbose</span></div>
+        <br>
+        <div class="result-header">
+          <div class="result-badge" id="res-icon"></div>
+          <div class="result-type" id="res-type"></div>
+          <div class="result-en" id="res-en"></div>
+        </div>
+        <div class="stats" id="res-stats"></div>
+        <div class="result-card">
+          <h3>// DESCRIPTION</h3>
+          <p id="res-desc"></p>
+        </div>
+        <div class="result-card">
+          <h3>// COMPATIBLE_TYPES</h3>
+          <p id="res-compat"></p>
+        </div>
+        <div class="result-card">
+          <h3>// DEBUG_LOG</h3>
+          <p id="res-debug" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#00ff4188;line-height:2;"></p>
+        </div>
+        <button class="btn" onclick="resetDiagnosis()">↺  もう一度診断する [RETRY]</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const questions = [
+  { q: "好きな人ができたとき、あなたはどうする？", a: "まず気持ちに従って行動する", b: "じっくり観察してから動く", axis: "EL" },
+  { q: "恋愛において大切にしていることは？", a: "感情・ときめき", b: "相性・将来性", axis: "EL" },
+  { q: "付き合う前の段階で大事なのは？", a: "「今」の気持ち", b: "「これから」のビジョン", axis: "EL" },
+  { q: "好きな人との連絡はどうしたい？", a: "毎日こまめに連絡したい", b: "必要なときに連絡する程度でいい", axis: "CL" },
+  { q: "恋人に求めるものは？", a: "一緒にいて安心できること", b: "お互いを高め合えること", axis: "CL" },
+  { q: "失恋したとき、あなたは？", a: "しばらく引きずってしまう", b: "気持ちを切り替えて次に進む", axis: "EL" },
+  { q: "理想の関係性は？", a: "いつも近くにいたい・ベタベタしたい", b: "適度な距離感を保ちたい", axis: "CL" },
+  { q: "恋愛と友情、どちらを優先しがち？", a: "恋愛が最優先になりがち", b: "友人関係も同じくらい大切にする", axis: "CL" },
+  { q: "デートの計画は？", a: "流れに任せてその場を楽しむ", b: "事前にしっかり計画を立てたい", axis: "CL" },
+  { q: "理想の告白は？", a: "感情が爆発したときに自然と伝えたい", b: "タイミングを見計らって伝えたい", axis: "EL" },
+];
+
+const types = {
+  sensor:    { name: "センサー型", en: "SENSOR TYPE", icon: "⚡", desc: "感情に正直で、直感で動く情熱派。好きになったら一直線で、相手に対して全力で向き合います。感受性が高く、恋人との時間を何より大切にするタイプです。", compat: ["ループ型", "ネットワーク型"], stats: { "EMOTIONAL": 90, "LOGICAL": 30, "CLOSENESS": 85, "FREEDOM": 40 } },
+  loop:      { name: "ループ型", en: "LOOP TYPE", icon: "🔁", desc: "一途で粘り強い、同じ人を想い続けるひたむきな恋愛スタイル。感情重視ながらも自分の時間も大切にし、じっくりと深い関係を築いていくタイプです。", compat: ["センサー型", "アルゴリズム型"], stats: { "EMOTIONAL": 80, "LOGICAL": 45, "CLOSENESS": 40, "FREEDOM": 75 } },
+  network:   { name: "ネットワーク型", en: "NETWORK TYPE", icon: "🌐", desc: "広い人間関係を大切にしつつ、恋愛にも積極的なオープンなタイプ。計画的に動き、恋人との距離感もほどよく保てる、安定した関係を好みます。", compat: ["センサー型", "アルゴリズム型"], stats: { "EMOTIONAL": 45, "LOGICAL": 70, "CLOSENESS": 80, "FREEDOM": 55 } },
+  algorithm: { name: "アルゴリズム型", en: "ALGORITHM TYPE", icon: "🧠", desc: "論理的・計画的に恋愛を進めるクールな戦略家。感情に流されず、相手との将来をしっかり見据えて行動します。自立した関係を好み、お互いの成長を重視するタイプです。", compat: ["ループ型", "ネットワーク型"], stats: { "EMOTIONAL": 30, "LOGICAL": 95, "CLOSENESS": 35, "FREEDOM": 90 } },
+};
+
+let cur = 0, scoreE = 0, scoreC = 0;
+
+function startDiagnosis() {
+  cur = 0; scoreE = 0; scoreC = 0;
+  showScreen('screen-question');
+  renderQ();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderQ() {
+  const q = questions[cur];
+  document.getElementById('q-counter').textContent = `${cur+1} / 10`;
+  document.getElementById('q-number').textContent = `[ QUERY_${String(cur+1).padStart(2,'0')} ]`;
+  document.getElementById('progress-fill').style.width = `${(cur+1)*10}%`;
+  const qt = document.getElementById('q-text');
+  qt.textContent = q.q;
+
+  const ch = document.getElementById('choices');
+  ch.innerHTML = `
+    <button class="choice-btn" onclick="answer('A')">
+      <span class="choice-label">[A]</span>${q.a}
+    </button>
+    <button class="choice-btn" onclick="answer('B')">
+      <span class="choice-label">[B]</span>${q.b}
+    </button>
+  `;
+}
+
+function answer(sel) {
+  const q = questions[cur];
+  const tb = document.querySelector('.terminal-body');
+  tb.classList.add('flash');
+  setTimeout(() => tb.classList.remove('flash'), 300);
+
+  if (sel === 'A') {
+    if (q.axis === 'EL') scoreE++;
+    else scoreC++;
+  }
+  cur++;
+  if (cur >= questions.length) showResult();
+  else renderQ();
+}
+
+function showResult() {
+  // E>=3:感情重視, C>=3:密着型
+  const emotional = scoreE >= 3;
+  const close = scoreC >= 3;
+  let typeKey;
+  if (emotional && close)  typeKey = 'sensor';
+  else if (emotional && !close) typeKey = 'loop';
+  else if (!emotional && close) typeKey = 'network';
+  else typeKey = 'algorithm';
+
+  const t = types[typeKey];
+  document.getElementById('res-icon').textContent = t.icon;
+  document.getElementById('res-type').textContent = t.name;
+  document.getElementById('res-en').textContent = `// ${t.en}`;
+
+  // stats
+  const sEl = document.getElementById('res-stats');
+  sEl.innerHTML = Object.entries(t.stats).map(([k,v]) => `
+    <div class="stat-item">
+      <div class="stat-label">${k}</div>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${v}%"></div></div>
+      <div class="stat-val">${v}%</div>
+    </div>
+  `).join('');
+
+  document.getElementById('res-desc').textContent = t.desc;
+  document.getElementById('res-compat').innerHTML = t.compat.map(c => `<span class="compat-tag">♡ ${c}</span>`).join('');
+
+  // debug log
+  document.getElementById('res-debug').innerHTML =
+    `> emotional_score: ${scoreE}/5<br>> closeness_score: ${scoreC}/5<br>> type_resolved: ${t.en}<br>> confidence: ${Math.round((Math.max(scoreE,5-scoreE)+Math.max(scoreC,5-scoreC))/10*100)}%<br>> status: ANALYSIS_COMPLETE ✓`;
+
+  showScreen('screen-result');
+}
+
+function resetDiagnosis() {
+  cur = 0; scoreE = 0; scoreC = 0;
+  showScreen('screen-start');
+}
+</script>
+</body>
+</html>
